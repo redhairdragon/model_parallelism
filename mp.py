@@ -5,6 +5,7 @@ import sys
 import torch.utils.data.distributed
 from torchvision import datasets, transforms
 import torch.nn.functional as F
+from Metric import Metric
 
 # import torch.multiprocessing as mp
 import time
@@ -15,10 +16,12 @@ from ModelShards import DistResNet50
 
 import torch.distributed.rpc as rpc
 import torch.nn as nn
-
+from tqdm import tqdm
+import math
 batch_size = 32
 num_classes = 100
 lr = 0.01
+epoch = 40
 
 
 def accuracy(output, target):
@@ -32,11 +35,10 @@ def run_master(num_split):
     # put the two model parts on worker1 and worker2 respectively
     model = DistResNet50(
         num_split, ["worker1", "worker2"])
-    loss_fn = nn.MSELoss()
     opt = DistributedOptimizer(
         optim.SGD,
         model.parameter_rrefs(),
-        lr=0.05,
+        lr=lr,
     )
 
     transform = transforms.Compose(
@@ -50,41 +52,65 @@ def run_master(num_split):
     val_dataset = datasets.CIFAR100(root='./data', train=False,
                                     download=True, transform=transform)
     val_loader = torch.utils.data.DataLoader(
-        val_dataset, batch_size=batch_size)
+        val_dataset, batch_size=128)
 
-    batch_offset = 0
-    for idx, (data, target) in enumerate(train_loader):
-        print(f"Processing batch {idx}")
-        batch_idx = batch_offset + idx
-        # data, target = data.cuda(), target.cuda()
-        target = target.view(-1, 1)
-        labels = torch.zeros(batch_size, num_classes).scatter_(1, target, 1)
-        with dist_autograd.context() as context_id:
-            outputs = model(data)
-            dist_autograd.backward(context_id, [loss_fn(outputs, labels)])
-            opt.step(context_id)
+    for e in range(epoch):
+        model.train()
+        train_loss = Metric("train_loss")
+        train_accuracy = Metric("train_accuracy")
+        with tqdm(
+            total=len(train_loader),
+            desc="Train Epoch #{}".format(e + 1),
+        ) as t:
+            for idx, (data, target) in enumerate(train_loader):
+                with dist_autograd.context() as context_id:
+                    outputs = model(data)
+                    loss = F.cross_entropy(outputs, target)
+                    dist_autograd.backward(context_id, [loss])
+                    opt.step(context_id)
+                    train_loss.update(loss)
+                    train_accuracy.update(accuracy(outputs, target))
+                    t.set_postfix(
+                        {
+                            "loss": train_loss.avg.item(),
+                            "accuracy": 100.0 * train_accuracy.avg.item(),
+                        }
+                    )
+                    t.update(1)
 
-        with torch.no_grad():
-            for data, target in val_loader:
-                output = model(data)
-                print("val loss:")
-                print(F.cross_entropy(output, target))
-                print("val accuracy:")
-                print(accuracy(output, target))
+        model.eval()
+        with tqdm(
+            total=len(val_loader),
+            desc="Valid Epoch #{}".format(e + 1),
+        ) as t:
+            with torch.no_grad():
+                val_loss = Metric("val_loss")
+                val_accuracy = Metric("val_accuracy")
+                for data, target in val_loader:
+                    output = model(data)
+                    val_loss.update(F.cross_entropy(output, target))
+                    val_accuracy.update(accuracy(output, target))
+                    t.set_postfix(
+                        {
+                            "loss": val_loss.avg.item(),
+                            "accuracy": 100.0 * val_accuracy.avg.item(),
+                        }
+                    )
+                    t.update(1)
 
 
 def run_worker(rank, world_size, num_split):
-    os.environ['MASTER_ADDR'] = '172.31.4.185'
+    os.environ['MASTER_ADDR'] = '172.31.13.136'
     # os.environ['MASTER_ADDR'] = 'localhost'
     os.environ['MASTER_PORT'] = '29500'
-    options = rpc.TensorPipeRpcBackendOptions(num_worker_threads=128)
+    # options = rpc.TensorPipeRpcBackendOptions(num_worker_threads=32)
 
     if rank == 0:
         rpc.init_rpc(
             "master",
             rank=rank,
             world_size=world_size,
-            rpc_backend_options=options
+            # rpc_backend_options=options
         )
         run_master(num_split)
 
@@ -93,7 +119,7 @@ def run_worker(rank, world_size, num_split):
             f"worker{rank}",
             rank=rank,
             world_size=world_size,
-            rpc_backend_options=options
+            # rpc_backend_options=options
         )
         print("slave init")
         pass
@@ -104,16 +130,8 @@ def run_worker(rank, world_size, num_split):
 
 if __name__ == "__main__":
     world_size = 3
-    # dist.init_process_group(backend='gloo', init_method="tcp://172.31.56.27:23456",
-    #                         rank=int(sys.argv[1]), world_size=world_size)
-
+    print("starting")
     num_split = 2
     tik = time.time()
-    # mp.spawn(run_worker, args=(world_size, num_split),
-    #  nprocs=world_size, join=True)
     run_worker(int(sys.argv[1]), world_size, num_split)
-    # dist.barrier()
     tok = time.time()
-    print(
-        f"number of splits = {num_split}, execution time = {tok - tik}")
-    time.sleep(3)

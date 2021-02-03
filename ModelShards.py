@@ -84,14 +84,14 @@ class DistResNet50(nn.Module):
         )
 
     def forward(self, xs):
-        out_futures = []
-        for x in iter(xs.split(self.num_split, dim=0)):
-            x_rref = RRef(x)
-            y_rref = self.p1_rref.remote().forward(x_rref)
-            z_fut = self.p2_rref.rpc_async().forward(y_rref)
-            out_futures.append(z_fut)
+        # out_futures = []
+        # for x in iter(xs.split(self.num_split, dim=0)):
+        x_rref = RRef(xs)
+        y_rref = self.p1_rref.remote().forward(x_rref)
+        z_fut = self.p2_rref.rpc_async().forward(y_rref)
+        # out_futures.append(z_fut)
 
-        return torch.cat(torch.futures.wait_all(out_futures))
+        return z_fut.wait()
 
     def parameter_rrefs(self):
         remote_params = []
