@@ -43,4 +43,4 @@ ubuntu@172.31.3.134 slots=1
 
 Run test.sh
 
-You can always go to aws->ec2-> launch template 
+You can always go to aws->ec2-> launch template, and use "Pactum-GPU-Shen" to launch instance, or use "elastic-shen-[$latest]" AMI to launch instance. The data and code should be included.
