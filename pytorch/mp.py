@@ -38,7 +38,7 @@ def run_master(num_split):
     opt = DistributedOptimizer(
         optim.SGD,
         model.parameter_rrefs(),
-        lr=lr,
+        lr=lr, momentum=0.9
     )
 
     transform = transforms.Compose(
