@@ -1,19 +1,19 @@
 #! /bin/bash
 
-GPUS_PER_NODE=16
+GPUS_PER_NODE=1
 # Change for multinode config
-MASTER_ADDR=localhost
+MASTER_ADDR=172.31.8.37
 MASTER_PORT=6000
-NNODES=1
+NNODES=2
 NODE_RANK=0
 WORLD_SIZE=$(($GPUS_PER_NODE*$NNODES))
 
 export DLWS_NUM_WORKER=${NNODES}
 export DLWS_NUM_GPU_PER_WORKER=${GPUS_PER_NODE}
 
-DATA_PATH=data/webtext/webtext_text_document
-VOCAB_PATH=data/gpt2-vocab.json
-MERGE_PATH=data/gpt2-merges.txt
+DATA_PATH="/home/ubuntu/wikidata/my-gpt2_text_document"
+VOCAB_PATH="/home/ubuntu/wikidata/roberta-large-mnli-vocab.json"
+MERGE_PATH=/home/ubuntu/wikidata/roberta-large-mnli-merges.txt
 CHECKPOINT_PATH=checkpoints/gpt2_345m_ds
 
 script_path=$(realpath $0)
@@ -22,9 +22,9 @@ script_dir=$(dirname $script_path)
 config_json="$script_dir/ds_config.json"
 
 # Megatron Model Parallelism
-mp_size=2
+mp_size=1
 # DeepSpeed Pipeline parallelism
-pp_size=2
+pp_size=1
 
 # NLAYERS=24
 # NHIDDEN=1024
@@ -135,7 +135,7 @@ fi
 
 full_options="${gpt_options} ${deepspeed_options} ${chkp_opt}"
 
-run_cmd="deepspeed --num_nodes ${DLWS_NUM_WORKER} --num_gpus ${DLWS_NUM_GPU_PER_WORKER} pretrain_gpt2.py $@ ${full_options}"
+run_cmd="deepspeed --hostfile=hostfile --num_nodes ${DLWS_NUM_WORKER} --num_gpus ${DLWS_NUM_GPU_PER_WORKER} pretrain_gpt2.py $@ ${full_options}"
 echo ${run_cmd}
 eval ${run_cmd}
 
