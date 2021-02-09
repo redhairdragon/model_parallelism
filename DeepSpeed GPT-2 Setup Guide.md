@@ -37,6 +37,7 @@ set NLAYERS, NHIDDEN, BATCHSIZE
 i.e 
 
 ubuntu@172.31.8.37 slots=1
+
 ubuntu@172.31.3.134 slots=1
 
 ### 2.3
