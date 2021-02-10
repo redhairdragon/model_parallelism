@@ -24,7 +24,7 @@ config_json="$script_dir/ds_config.json"
 # Megatron Model Parallelism
 mp_size=1
 # DeepSpeed Pipeline parallelism
-pp_size=1
+pp_size=2
 
 # NLAYERS=24
 # NHIDDEN=1024
