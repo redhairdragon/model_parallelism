@@ -14,4 +14,4 @@ for insts in response['Reservations']:
             private_ips.append(inst["PrivateIpAddress"])
 with open("hostfile", "w") as f:
     for ip in private_ips:
-        f.write("ubuntu@"+ip+"\n")
+        f.write("ubuntu@"+ip+" slot=1\n")
