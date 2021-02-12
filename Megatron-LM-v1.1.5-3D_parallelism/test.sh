@@ -61,7 +61,7 @@ gpt_options=" \
         --max-position-embeddings 1024 \
         --batch-size $BATCHSIZE \
         --gas $GAS \
-        --train-iters 320000 \
+        --train-iters 20 \
         --lr-decay-iters 320000 \
         --save $CHECKPOINT_PATH \
         --load $CHECKPOINT_PATH \
