@@ -31,6 +31,7 @@ from megatron.fp16 import fp32_to_fp16
 
 # pretend this is a great DeepSpeed change too
 
+
 def model_provider():
     """Build the model."""
 
@@ -40,7 +41,8 @@ def model_provider():
     if args.pipe_parallel_size == 0:
         model = GPT2Model(num_tokentypes=0, parallel_output=True)
     else:
-        model = GPT2ModelPipe(num_tokentypes=0, parallel_output=True, topology=mpu.get_topology())
+        model = GPT2ModelPipe(
+            num_tokentypes=0, parallel_output=True, topology=mpu.get_topology())
         # This is a hack to give us a reference to get_batch_pipe from within training.py
         # We need to call model.set_batch_fn after deepspeed.initialize
         model._megatron_batch_fn = get_batch_pipe
@@ -78,6 +80,7 @@ def get_batch(data_iterator):
         args.eod_mask_loss)
 
     return tokens, labels, loss_mask, attention_mask, position_ids
+
 
 def get_batch_pipe(data):
     """A modification of get_batch() to work with the latest batch instead of an iterator. """
