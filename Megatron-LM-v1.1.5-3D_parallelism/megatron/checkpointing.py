@@ -94,7 +94,7 @@ def get_checkpoint_tracker_filename(checkpoints_path):
 
 def save_ds_checkpoint(iteration, model, args):
     """Save a model checkpoint."""
-    print("**********[MODEL save_ds_checkpoint]**********************")
+
     sd = {}
     sd['iteration'] = iteration
     # rng states.

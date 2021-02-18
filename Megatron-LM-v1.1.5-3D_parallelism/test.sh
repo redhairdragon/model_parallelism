@@ -24,12 +24,10 @@ config_json="$script_dir/ds_config.json"
 # Megatron Model Parallelism
 mp_size=1
 # DeepSpeed Pipeline parallelism
-pp_size=2
+pp_size=3
 
-# NLAYERS=24
-# NHIDDEN=1024
-NLAYERS=4
-NHIDDEN=128
+NLAYERS=24
+NHIDDEN=1024
 BATCHSIZE=4
 LOGDIR="tensorboard_data/${NLAYERS}l_${NHIDDEN}h_${NNODES}n_${GPUS_PER_NODE}g_${pp_size}pp_${mp_size}mp_${BATCHSIZE}b_ds4"
 
@@ -79,7 +77,7 @@ gpt_options=" \
         --warmup 0.01 \
         --checkpoint-activations \
         --log-interval 1 \
-        --save-interval 500 \
+        --save-interval 5 \
         --eval-interval 100 \
         --eval-iters 10 \
         --fp16 \
